@@ -1,4 +1,5 @@
 from collections import namedtuple
+import sqlite3
 
 # make a basic Link class
 Link = namedtuple('Link', ['id', 'submitter_id', 'submitted_time', 'votes',
@@ -80,17 +81,18 @@ links = [
     Link(24, 48626, 1333934004.0, 17,
          "An R programmer looks at Julia",
          "http://www.r-bloggers.com/an-r-programmer-looks-at-julia/")]
+# make and populate a table
+db = sqlite3.connect(':memory:')
+db.execute('create table links ' +
+          '(id integer, submitter_id integer, submitted_time integer, ' +
+          'votes integer, title text, url text)')
+for l in links:
+    db.execute('insert into links values (?, ?, ?, ?, ?, ?)', l)
 
+#Function for converting the SQLite database to a list
+def convert():
+    c = db.execute("select * from links") #Making a cursor for the the database
+    list = [t for t in c] # Converting the database into a list
+    return list
 
-# links is a list of Link objects. Links have a handful of properties. For
-# example, a Link's number of votes can be accessed by link.votes if "link" is a
-# Link.
-
-# QUIZ - implement the function build_link_index() that creates a python dictionary
-# the maps a link's ID to the link itself
-def build_link_index():
-    index = {}
-    for l in links:
-        index[l.id] = l
-    return index
-print build_link_index()
+print convert()

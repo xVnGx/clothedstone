@@ -1,54 +1,41 @@
-import    webapp2
-def valid_day(day):
-    if day and day.isdigit():
-        day = int(day)
-        if day > 0 and day <= 31:
-            return day
-
-def valid_month(month):
-     if 
+import webapp2
 
 form="""
-<form>
-     <label>
-          Day
-          <input type="text" name="day">
-     </label>
 
-     <label>
-          Month
-          <input type="text" name="month">
-     </label>
-
-     <label>
-          Year
-          <input type="text" name="year">
-     </label>
-
-<br>
-<br>
-
-<input type='submit'>
-
-</form>
 """
 
-
 class MainPage(webapp2.RequestHandler):
-     def get(self):
-          self.response.out.write(form)
+  def get(self):
+    self.response.out.write(form)
 
-     def post(self):
-          
-          user_month = valid_month(self.request.get('month'))
-          user_day = valid_day(self.request.get('day'))
-          user_year = valid_year(self.request.get('year'))
+  def post(self):
+        have_error = False
+        username = self.request.get('username')
+        password = self.request.get('password')
+        verify = self.request.get('verify')
+        email = self.request.get('email')
 
-          if not(user_year and user_day and user_month):
-               self.response.out.write(form)
-          else:
-               self.response.out.write("Thanks, that is totally a valid day!")
-          
+        params = dict(username = username,
+                      email = email)
+
+        if not valid_username(username):
+            params['error_username'] = "That's not a valid username."
+            have_error = True
+
+        if not valid_password(password):
+            params['error_password'] = "That wasn't a valid password."
+            have_error = True
+        elif password != verify:
+            params['error_verify'] = "Your passwords didn't match."
+            have_error = True
+
+        if not valid_email(email):
+            params['error_email'] = "That's not a valid email."
+            have_error = True
+
+        if have_error:
+            self.render('signup-form.html', **params)
+        else:
+            self.redirect('/unit2/welcome?username=' + username)
 
 app = webapp2.WSGIApplication([('/', MainPage)], debug=True)
-
