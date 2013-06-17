@@ -1,41 +1,57 @@
+import os
 import webapp2
+import jinja2
+import re
 
-form="""
+from google.appengine.ext import db
 
-"""
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
+                               autoescape = True)
 
-class MainPage(webapp2.RequestHandler):
-  def get(self):
-    self.response.out.write(form)
+class Handler(webapp2.RequestHandler):
+    def write(self, *a, **kw):
+        self.response.out.write(*a, **kw)
 
-  def post(self):
-        have_error = False
-        username = self.request.get('username')
-        password = self.request.get('password')
-        verify = self.request.get('verify')
-        email = self.request.get('email')
+    def render_str(self, template, **params):
+        t = jinja_env.get_template(template)
+        return t.render(params)
 
-        params = dict(username = username,
-                      email = email)
+    def render(self, template, **kw):
+        self.write(self.render_str(template, **kw))
 
-        if not valid_username(username):
-            params['error_username'] = "That's not a valid username."
-            have_error = True
 
-        if not valid_password(password):
-            params['error_password'] = "That wasn't a valid password."
-            have_error = True
-        elif password != verify:
-            params['error_verify'] = "Your passwords didn't match."
-            have_error = True
+# Creating a database for the blogposts
+# bp = name of db with blogposts
+# in bp we have three diffrent colums:
+# title = string
+# body = text the blogpost itself
+# created which is the timestamp colum
+class bp(db.Model):
+    title = db.StringProperty(required = True)
+    body = db.TextProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
 
-        if not valid_email(email):
-            params['error_email'] = "That's not a valid email."
-            have_error = True
+# Rendering the frontpage
+class frontpage(Handler):
+    def render_front(self, title="", body="", error=""):
+        blogposts = db.GqlQuery("select * from bp order by created desc")
+        self.render("play.html", title=title, bp=blog, error=error)
 
-        if have_error:
-            self.render('signup-form.html', **params)
+    def get(self):
+        self.render_front()
+
+    def post(self):
+        title = self.request.get("title")
+        art = self.request.get("art")
+
+        if title and art:
+            a = Art(title = title, art = art)
+            a.put()
+            self.redirect('/')
         else:
-            self.redirect('/unit2/welcome?username=' + username)
+            error = "We need a title and some art man!"
+            self.render_front(title, art, error)
 
-app = webapp2.WSGIApplication([('/', MainPage)], debug=True)
+app = webapp2.WSGIApplication([('/', frontpage)],
+                              debug=True)
